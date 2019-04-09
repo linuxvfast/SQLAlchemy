@@ -1,0 +1,84 @@
+import sqlalchemy
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column,Integer,String
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import func
+
+
+#连接数据库
+engine = create_engine("mysql+pymysql://root:123456@192.168.10.22/code",encoding='utf-8',echo=True)
+#创建基类
+base = declarative_base()
+
+#创建表的类
+class User(base):
+    __tablename__ = 'user' #定义表名
+    id = Column(Integer,primary_key=True)
+    name = Column(String(32))
+    password = Column(String(64))
+
+    def __repr__(self):
+        '''使用query查询显示属性'''
+        return "<%s(name='%s',password='%s'>"%(self.id,self.name,self.password)
+
+base.metadata.create_all(engine) #创建表结构
+
+session_class = sessionmaker(bind=engine) #创建与数据库的会话session class ,注意,这里返回给session的是个class,不是实例
+session = session_class() #生成session实例
+
+# user_obj = User(name='test',password='test123') #生成你要创建的数据对象
+# print(user_obj.name,user_obj.id) #此时还没创建对象呢，不信你打印一下id发现还是None
+#
+# session.add(user_obj) #把要创建的数据对象添加到这个session里， 一会统一创建
+# print(user_obj.name,user_obj.id)
+#
+# session.commit() #现此才统一提交，创建数据
+
+# res = session.query(User).filter_by().all() #获取所有的数据，返回一个列表
+# print(res)
+# print(session.query(User.name,User.id).all()) 
+
+# res1 = session.query(User).filter_by().first() #获取第一条数据
+# print(res1)
+
+# res = session.query(User).filter_by(id = 2).all() #获取id=2的值
+# print(res)
+# res = session.query(User).filter(User.id == 2).all()
+# print(res)
+
+#Many conditions query（多条件查询）
+# res = session.query(User).filter(User.id>0).filter(User.id<3).all()
+# print(res)
+
+#statistical（统计）
+# res = session.query(User).filter(User.name.like("t%")).count()
+# print(res)
+
+#grouping(分组)
+# res = session.query(func.count(User.name),User.name).group_by(User.name).all()
+# print(res)
+#相当于执行sql（select count(user.name),user.name from user group by user.name）
+
+
+#changed(修改name的值)
+# user_first = session.query(User).filter_by(name='bai').first()
+# user_first.name = 'hao'
+# session.commit()
+#
+# print(session.query(User).filter_by().all())
+
+
+
+#the rollback（回滚）没有测试成功
+# user_obj = session.query(User).filter_by(id=1).first()
+# user_obj.name = 'vfast'
+#
+# user_obj = session.query(User).filter_by(id=7).first()
+# user_obj.name = 'fei'
+#
+# print(1,session.query(User).filter(User.name.in_(['vfast','fei'])).all())
+# session.rollback() #回滚
+# print(2,session.query(User).filter(User.name.in_(['vfast','fei'])).all())
+# session.commit()
+
