@@ -1,0 +1,92 @@
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Integer,String,Column,ForeignKey,DATE,Table
+from sqlalchemy.orm import relationship,sessionmaker
+
+engine = create_engine("mysql+pymysql://root:123456@192.168.10.22/code",encoding='utf-8')
+base = declarative_base()
+
+book_m2m_author = Table('book_m2m_author',base.metadata,
+                        Column('book_id',Integer,ForeignKey('books.id')),
+                        Column('author_id',Integer,ForeignKey('authors.id')))
+
+class Book(base):
+    __tablename__ = 'books'
+    id = Column(Integer,primary_key=True)
+    name = Column(String(64))
+    pub_date = Column(DATE)
+
+    __table_args__ = { #Specify the character set and engine（指定字符集和引擎）
+        'mysql_charset':'utf8',
+        'mysql_engine':'InnoDB'
+    }
+
+    def __repr__(self):
+        return self.name
+
+
+
+class Author(base):
+    __tablename__ = 'authors'
+    id = Column(Integer,primary_key=True)
+    name = Column(String(32))
+    books = relationship('Book', secondary=book_m2m_author, backref='authors')
+
+    __table_args__ = {
+        'mysql_charset': 'utf8',
+        'mysql_engine': 'InnoDB'
+    }
+
+    def __repr__(self):
+        return self.name
+
+base.metadata.create_all(engine)
+
+session_class = sessionmaker(bind=engine)
+session = session_class()
+
+#add book name and authors
+book1 = Book(name='学Python')
+book2 = Book(name='学Java')
+book3 = Book(name='学Php')
+book4 = Book(name='学C++')
+
+author1 = Author(name='tom')
+author2 = Author(name='fast')
+author3 = Author(name='jack')
+
+book1.authors = [author1,author2]
+book2.authors = [author1,author2,author3]
+
+session.add_all([book1,book2,book3,book4,author1,author2,author3])
+session.commit()
+
+#the query
+# print('通过书查关联的作者'.center(30,'-'))
+# book_obj = session.query(Book).filter_by(name='学Python').first()
+# print(book_obj.name,book_obj.authors)
+#
+# print('通过作者查关联的书'.center(30,'-'))
+# author_obj = session.query(Author).filter_by(name='fast').first()
+# print(author_obj.name,author_obj.books)
+
+
+# 多对多删除
+# 删除数据时不用管boo_m2m_authors　， sqlalchemy会自动帮你把对应的数据删除
+
+#Delete the author by removing books
+# author_obj = session.query(Author).filter_by(name='jack').first()
+# print(author_obj.name)
+# book_obj = session.query(Book).filter_by(name='学Java').first()
+# print(book_obj.name)
+# book_obj.authors.remove(author_obj)
+# session.commit()
+
+
+#removing authors(会把authors表中的作者删除,以及删除关联表中的关联数据)
+# author_obj = session.query(Author).filter_by(name='fast').first()
+# print(author_obj.name)
+# session.delete(author_obj)
+# session.commit()
+
+
